@@ -18,7 +18,7 @@
 #ifndef DSP_COMMUNICATION_H
 #define DSP_COMMUNICATION_H
 
-#include <mcapi.h>
+#include <mcapi-2.0/mcapi.h>
 
 typedef struct dsp_comminication{
 	unsigned int domain;
