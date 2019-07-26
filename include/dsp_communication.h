@@ -65,9 +65,10 @@ void recv_msg_from_dsp(mcapi_endpoint_t recv, char *buffer, size_t buffer_size, 
 mcapi_request_t *request, int mode, int timeout);
 #else
 int dsp_com_open(int connection_id, size_t sram_size, int block_mode);
-void dsp_com_close(int fd, int connection_id);
-void dsp_com_write(int fd, void *value, size_t data_size, int block_mode);
+void dsp_com_close(int fd);
+void dsp_com_write(int fd, void *value, size_t data_size, int offset);
 //void dsp_com_read(DSP_COM_HANDLE *handle, void *value, size_t data_size, int block_mode);
+
 #endif
 
 
