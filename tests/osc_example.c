@@ -16,10 +16,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <alsa/asoundlib.h>
 #include "dsp_communication.h"
+
+#include <libxml/parser.h>  
+#include <libxml/xmlmemory.h>
 
 #include "lo/lo.h"
 #include "adi_osc.h"
@@ -36,11 +41,11 @@ static int dsp_fd; // fd to operation DSP communication
 static int connection_id = 3;
 #define BUFF_SIZE 64
 #define MAX_BUF_SIZE BUFF_SIZE*1024
+#define MAX_WIDGET_NUM 1000
 
 
 /* ARM Control */
 int done = 0;
-int fd = 0;
 static char *card = "hw:0";
 static char *test_wav = "/test-48k.wav";
 static snd_ctl_t *handle = NULL;
@@ -62,6 +67,7 @@ static struct widget user_wid[] = {
 	{ARM, LO_INT32, "/left/right/DAC/switch", AMIXER_LEFT_PLAYBACK_MIXER_RIGHT_DAC_SWITCH},
 	{ARM, LO_INT32, "/right/left/DAC/switch", AMIXER_RIGHT_PLAYBACK_MIXER_LEFT_DAC_SWITCH},
 	{ARM, LO_INT32, "/right/right/DAC/switch", AMIXER_RIGHT_PLAYBACK_MIXER_RIGHT_DAC_SWITCH},
+#if 0
 	{DSP, LO_FLOAT, "/audioproj/fin/pot/hadc0", NULL},
 	{DSP, LO_FLOAT, "/audioproj/fin/pot/hadc1", NULL},
 	{DSP, LO_FLOAT, "/audioproj/fin/pot/hadc2", NULL},
@@ -73,9 +79,70 @@ static struct widget user_wid[] = {
 	{DSP, LO_INT32, "/echo/loopback/switch", "echo loopback switch"}, 
 	{DSP, LO_INT32, "/pot/hadc/loopback/switch", "pot hadc loopback switch"}, 
 #endif
+#endif
 };
 static struct osc_ops amixer_audio_ops[] = {
 };
+#if
+static struct adi_dsp_osc dsp_osc_widget[] = {
+	{0, "/audioproj/fin/pot/hadc0", "f", "set hadc0 parameter"},
+	{1, "/audioproj/fin/pot/hadc1", "f", "set hadc1 parameter"},
+	{2, "/audioproj/fin/pot/hadc2", "f", "set hadc2 parameter"},
+	{3, "/audioproj/fin/pot/hadc3", "f", "set hadc3 parameter"},
+	{4, "/audioproj/fin/pot/hadc4", "f", "set hadc4 parameter"},
+	{5, "/audioproj/fin/pot/hadc5", "f", "set hadc5 parameter"},
+	{6, "/audioproj/fin/pot/hadc6", "f", "set hadc6 parameter"},
+	{7, "/effects/preset", "i", "enable effects preset"},
+	{8, "/reverb/preset", "i", "enable reverb preset"},
+	{9, "/total/effects/preset", "i", "enable total effexts preset"},
+#if 0
+	{5, "/dsp/gain/delay/seconds", "f", "set gain delay seconds"},
+	{6, "/dsp/gain/feedback", "f", "set gain feedback"},
+	{7, "/dsp/gain/wet/mix", "f", "set gain wet mix value"},
+	{8, "/echo/loopback/switch", "i", "echo loopback switch"}, 
+	{9, "/pot/hadc/loopback/switch", "i", "pot hadc loopback switch"}, 
+#endif
+};
+
+static int start_osc_server(int osc_port, lo_server_thread osc_server) {
+	int i;
+	uint32_t port = (osc_port > 100 && osc_port < 60000) ? osc_port : 9988;
+	char sport[10];
+
+	sprintf(sport,"%d", port);
+
+	printf("hfeng %s %d, sport=%s\n",__func__,__LINE__,sport);
+//	itoa(port, sport, 10);
+	osc_server = lo_server_thread_new(sport, error);
+
+	if (!osc_server) {
+		fprintf(stderr, "OSC failed to listen on port %s", sport);
+		return -1;
+	}
+
+	/* Register dsp_handler */
+	printf("hfeng %s %d\n",__func__,__LINE__);
+	for (i = 0;i < sizeof(dsp_osc_widget)/sizeof(struct adi_dsp_osc);++i)
+	{
+		lo_server_thread_add_method(osc_server, dsp_osc_widget[i].path,
+					dsp_osc_widget[i].type, dsp_handler, NULL);
+	}
+
+	lo_server_thread_start(osc_server);
+
+	return 0;
+}
+
+static void stop_osc_server(lo_server_thread osc_server) {
+	printf("hfeng %s %d",__func__,__LINE__);
+	if (!osc_server)
+	  return;
+	lo_server_thread_stop(osc_server);
+	lo_server_thread_free(osc_server);
+	fprintf(stderr, "stop osc server\n");
+	osc_server = NULL;
+}
+
 static void show_control_id(snd_ctl_elem_id_t *id)
 {
 	char *str;
@@ -152,111 +219,14 @@ static void musicplay_control_ops(const char *path, lo_type type,
 		system("kill -9 $(ps -ef| grep aplay| grep -v grep | awk '{print $1}')");
 }
 
-#if 0
-static void dsp_control_ops2(const char *path, const char *types,
-			lo_arg *argv, void *user_data)
-{
-	if(strcmp(path, OSC_DSP_GAIN_DELAY_SECONDS) == 0 ||
-		strcmp(path, OSC_DSP_AUDIOPROJ_FIN_POT_HADC2) == 0	) 	
-	    effect_param.audioproj_fin_pot_hadc2 = argv->f;
-	else if(strcmp(path, OSC_DSP_GAIN_WET_MIX) == 0 ||
-		strcmp(path, OSC_DSP_AUDIOPROJ_FIN_POT_HADC1) == 0) 	
-	    effect_param.audioproj_fin_pot_hadc1 = argv->f;
-	else if(strcmp(path, OSC_DSP_GAIN_FEEDBACK)== 0 || 	
-		strcmp(path, OSC_DSP_AUDIOPROJ_FIN_POT_HADC0) == 0) 	
-	    effect_param.audioproj_fin_pot_hadc0 = argv->f;
-	
-	if(strcmp(path, OSC_DSP_EFFECTS_PRESET) == 0)
-	    effect_param.effects_preset = argv->i;
-
-	if(strcmp(path, OSC_DSP_REVERB_PRESET) == 0)
-	    effect_param.reverb_preset = argv->i;
-
-    write(fd, (char *)&effect_param, sizeof(EFFECT_PARAM)); 
-	printf("hfeng effects_preset=%d\n",effect_param.effects_preset);
-	printf("hfeng reverb_preset=%d\n",effect_param.reverb_preset);
-	printf("hfeng hadc0=%f\n",effect_param.audioproj_fin_pot_hadc0);
-	printf("hfeng hadc1=%f\n",effect_param.audioproj_fin_pot_hadc1);
-	printf("hfeng hadc2=%f\n",effect_param.audioproj_fin_pot_hadc2);
-}
-#endif
 
 static void dsp_control_ops(const char *path, lo_type type,
 			lo_arg *argv, void *user_data)
 {
 	int id = *(int32_t *)user_data;
-    lo_pcast32 val32;
-    lo_pcast64 val64;
-    int size;
-    int i;
-	int bigendian = 0;
-	void *data = (void *)argv;
-	char * sram_base ;
-	char send_buf[32] = "";
-	char * sram_vaddr;
-
 	printf("\nhfeng%s %d path=%s\n",__func__,__LINE__, path);
 	printf("%s fdfdfd =0x%x\n",__func__,dsp_fd);
 
-	/* DSP echo switch control */
-//	char startup_cmd[40];
-//	char stop_cmd[40];
-//	sprintf(startup_cmd, "sh /%s_startup.sh","echo"); 
-
-	/* process path value */
-	printf("\nhfeng%s %d process path value \n",__func__,__LINE__);
-    size = lo_arg_size(type, data);
-    if (size == 4 || type == LO_BLOB) {
-		if (bigendian) {
-			val32.nl = lo_otoh32(*(int32_t *)data);
-		} else {
-		    val32.nl = *(int32_t *)data;
-		}
-    } else if (size == 8) {
-		if (bigendian) {
-			val64.nl = lo_otoh64(*(int64_t *)data);
-		} else {
-		    val64.nl = *(int64_t *)data;
-		}
-    }
-
-//	send_buf.size = size;
-//	printf("hfeng send.size=%d\n", send_buf.size);
-//	alloc_dsp_com_mem(&master, &send_buf, &sram_vaddr);
-
-//	printf("hfeng alloc_dsp_com_mem finished, vaddr=0x%x, paddr=0x%x,send.size=%d\n",sram_vaddr, send_buf.paddr,send_buf.size);
-
-	/* copy path data into SRAM */
-    switch (type) {
-    case LO_INT32:
-		printf("hfeng %s %d val32.i=%d\n",__func__,__LINE__, val32.i);
-		dsp_com_write(dsp_fd, &val32.i, size, block_mode); 
-//		memcpy(&sram_vaddr, &val32.i, sizeof(user_wid[id].type));
-//		printf("hfeng effects_preset = %d\n", effect_param.effects_preset);
-//		printf("hfeng size= %d\n",sizeof(user_wid[id].type));
-		break;
-    case LO_FLOAT:
-		printf("hfeng %s %d val32.f=%f\n",__func__,__LINE__, val32.f);
-		dsp_com_write(dsp_fd, &val32.f, size, block_mode); 
-//		memcpy(&sram_vaddr, &val32.f, sizeof(user_wid[id].type));
-//		printf("hfeng audioproj_fin_pot_hadc2 = %f\n", effect_param.audioproj_fin_pot_hadc2);
-//		printf("hfeng size= %d\n",sizeof(user_wid[id].type));
-		break;
-    default:
-		fprintf(stderr, "liblo warning: unhandled type: %c\n", type);
-		break;
-    }
-
-	/* send buffer addr+size to DSP */
-//	send_buf.size = sizeof(user_wid[id].type);
-
-//	printf("hfeng l2addr=0x%x, size=%d\n",send_buf.paddr, send_buf.size);
-
-//	char buf[]="0x20084000";
-//	free_dsp_com_mem(&send_buf, );
-
-
-  //  write(fd, (char *)&effect_param, sizeof(EFFECT_PARAM)); 
 }
 
 static void pot_hadc_loopback_control_ops(const char *path, lo_type type,
@@ -290,32 +260,71 @@ static void echo_loopback_control_ops(const char *path, lo_type type,
 	}
 }
 
-int main()
+static void signal_handler(int sig)
+{
+	done = 1;
+	signal(sig, signal_handler);
+}
+
+static int help(void)
+{
+	printf("Usage: osc_example <options>\n");
+	printf("\nAvailable options:\n");
+	printf("\t-h,--help\t\tthis help\n");
+	printf("\t-f,--file\t\tload xml parameter file\n");
+	printf("\t-p,--port\t\tosc server listen port\n");
+	return 0;
+}
+
+static int offset[sizeof(dsp_osc_widget)/sizeof(struct adi_dsp_osc)];
+int main(int argc, char *argv[])
 {
     int err = 0;
-	int fd;
-//	state_parse_handler();
-#if 0
-    fd = open("/sys/audio_dsp_delay/audio_dsp_delay", O_RDWR);
-    if (fd < 0){
-		printf("open file error\n");
-		return -1;
+	int i, osc_port, offset_size = 0;
+	static const char short_options[] = "hf:p:";
+	lo_server_thread st = NULL;
+
+	static const struct option long_options[] = {
+		{ "help", 0, NULL, 'h' },
+		{ "xml", 1, NULL, 'f' },
+		{ "port", 1, NULL, 'p' },
+	};
+
+	/* Parse parameter */
+	while (1) {
+		int c;
+		if ((c = getopt_long(argc, argv, short_options, long_options, NULL)) < 0)
+			break;
+		switch (c) {
+		case 'h':
+			help();
+			return 0;
+			break;
+		case 'p':
+			osc_port = atoi(optarg);
+			break;
+		case 'f':
+			printf("TODO!!!!\n");
+		default:
+			help();
+			break;
+		}
 	}
-#endif
-	/*  Prepare for DSP control ops */
-	printf("hfeng %s &fdfdfd =0x%x\n",__func__,dsp_fd);
 
-	dsp_fd = dsp_com_open(connection_id, MAX_BUF_SIZE, block_mode);
-	printf("hfeng %s &fdfdfd =0x%x\n",__func__,dsp_fd);
+	offset[0] = 0;
+	/* Calculate each offset */
+	for (i = 1; i < sizeof(dsp_osc_widget)/sizeof(struct adi_dsp_osc); i++)
+	{
+		if (dsp_osc_widget[i].type == "i")
+			offset_size = sizeof(int32_t);
+		else if (dsp_osc_widget[i].type == "f")
+			offset_size = sizeof(float);
 
-	//	printf("hfeng222 -dsp_com_opened!(%d,%d,%d)to(%d,%d,%d)\n",
-	//		(dsp_handle.master.domain),
-	//		(dsp_handle.master.node),
-	//		(dsp_handle.master.port),
-	//		(dsp_handle.slave.domain),
-	//		(dsp_handle.slave.node),
-	//		(dsp_handle.slave.port));
-	//printf("hfeng %s %d sram_handle=%ld",__func__,__LINE__, dsp_handle.sram_handle);
+		offset[i] = offset[i-1] + offset_size;
+		printf("hfeng offset[%d]=%d\n",i, offset[i]);
+	}
+
+//	state_parse_handler();
 
 	/* Prepare for ARM control ops */
     if (handle == NULL && (err = snd_ctl_open(&handle, card, 0)) < 0) {
@@ -337,23 +346,15 @@ int main()
         return err;
     }
 
+	/*  Prepare for DSP control ops */
+	dsp_fd = dsp_com_open(connection_id, offset_size, block_mode);
 
-    /* start a new server on port 7770 */
-    lo_server_thread st = lo_server_thread_new("7770", error);
+	/*  Start OSC server */
+	start_osc_server(osc_port, st);
 
-    /* add method that will match any path and args */
-//    lo_server_thread_add_method(st, NULL, NULL, generic_handler, NULL);
-    lo_server_thread_add_method(st, NULL, NULL, user_widget_handler, NULL);
-
-    /* add method that will match the path /foo/bar
-     * to float and int */
-//    lo_server_thread_add_method(st, "/update/state", NULL, state_parse_handler, NULL);
-    
-
-    /* add method that will match the path /quit with no args */
-//    lo_server_thread_add_method(st, "/quit", "", quit_handler, NULL);
-
-    lo_server_thread_start(st);
+	signal(SIGINT, signal_handler);
+	signal(SIGTERM, signal_handler);
+	signal(SIGABRT, signal_handler);
 
     while (!done) {
 #ifdef WIN32
@@ -361,10 +362,10 @@ int main()
 #else
 	usleep(1000);
 #endif
-    }
+	}
 
-    lo_server_thread_free(st);
-	dsp_com_close(dsp_fd, connection_id);
+	stop_osc_server(st);
+	dsp_com_close(dsp_fd);
 
     return 0;
 }
@@ -404,6 +405,45 @@ int generic_handler(const char *path, const char *types, lo_arg **argv,
     return 1;
 }
 
+int dsp_handler(const char *path, const char *types, lo_arg **argv,
+		    int argc, void *data, void *user_data)
+{
+	int i,id;
+    lo_pcast32 val32;
+    lo_pcast64 val64;
+	int bigendian = 0;
+    int size;
+
+	for(id = 0; id < sizeof(dsp_osc_widget); id++) {
+		if(strcmp(dsp_osc_widget[id].path, path) == 0)
+		  break;
+	}
+
+    printf("hfeng %s %d path: <%s>,id=%d,argc=%d,adi_path=%s, adi_desc=%s\n",__func__,__LINE__, path,id,argc,dsp_osc_widget[id].path,dsp_osc_widget[id].desc);
+
+	/*  If one address has two args */
+	for (i = 0; i < argc; i++)
+	{
+		/* process path value */
+	    size = lo_arg_size(types[i], argv[i]);
+		if (size == 4 || types[i] == LO_BLOB) {
+			if (bigendian) {
+				val32.nl = lo_otoh32(*(int32_t *)argv[i]);
+			} else {
+			    val32.nl = *(int32_t *)argv[i];
+			}
+	    } else if (size == 8) {
+			if (bigendian) {
+				val64.nl = lo_otoh64(*(int64_t *)argv[i]);
+			} else {
+				val64.nl = *(int64_t *)argv[i];
+			}
+		}
+
+		dsp_com_write(dsp_fd, &val32, size, offset[id]); 
+		printf("hfeng %s %d dsp_control_ops finished\n",__func__,__LINE__);
+	}
+}
 int user_widget_handler(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, void *user_data)
 {
@@ -552,4 +592,14 @@ int vol_db_to_int(lo_arg *result, int argv,
 	result->i = (dest_delta/db_delta)*dest_to_db_delta + dest_min;
 //	printf("hfeng1 result=%d\n", result->i);
 	return 1;
+}
+
+static int parse_xml_parameter()
+{
+	xmlDocPtr doc;  
+    xmlNodePtr curNode;  
+  
+    xmlKeepBlanksDefault(0);  
+    doc = xmlReadFile("mine.xml", "UTF-8", XML_PARSE_RECOVER); // open a xml doc.  
+    curNode = xmlDocGetRootElement(doc); // get root element.  
 }

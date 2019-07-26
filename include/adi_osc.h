@@ -20,6 +20,8 @@ int generic_handler(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, void *user_data);
 int user_widget_handler(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, void *user_data);
+int dsp_handler(const char *path, const char *types, lo_arg **argv,
+		    int argc, void *data, void *user_data);
 void state_parse_handler();	    
 void delSpace(char *str);
 static void arm_control_ops(const char *path, lo_type type,
@@ -75,6 +77,13 @@ typedef struct widget{
 //	char *addr;			/* the address of the audio_effect_param,
 //						 * indicate the parameter should be parsed */
 	char *desc;		/* description for the widget */
+};
+
+struct adi_dsp_osc{
+	int32_t index;
+	const char *path;
+	lo_type *type;
+	const char *desc;
 };
 
 typedef union {
