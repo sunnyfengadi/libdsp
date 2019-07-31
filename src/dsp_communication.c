@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  dsp_msg.c
+ *       Filename:  dsp_communication.c
  *
  *    Description:  
  *
@@ -26,7 +26,6 @@
 #define CHECK_SIZE(max, check, line) check_size(max, check, line);
 #define BUFF_SIZE 64
 #define TIMEOUT 5*1000
-#define MAX_BUF_SIZE BUFF_SIZE*10
 #define CMD_VIR_TO_PHYS    9999 
 
 void WRONG(unsigned line)
@@ -68,7 +67,6 @@ static void setup_dsp_inode(DSP_COM *inode, mcapi_domain_t mdomain,
 
 static void deinit_dsp_com_mcapi_socket(DSP_COM_HANDLE *handle)
 {
-	printf("hfeng %s %d \n",__func__,__LINE__);
 	mcapi_status_t status;
 	DSP_COM *master = &handle->master; 
 	DSP_COM *slave = &handle->slave;
@@ -85,7 +83,6 @@ static int init_dsp_com_mcapi_socket(DSP_COM_HANDLE *handle,
 	mcapi_param_t parms;
 	mcapi_info_t version;
 
-	printf("hfeng %s %d \n",__func__,__LINE__);
 	/* Create MCAPI communication socket */
 	DSP_COM *master = &handle->master; 
 	DSP_COM *slave = &handle->slave;
@@ -108,7 +105,6 @@ static int init_dsp_com_mcapi_socket(DSP_COM_HANDLE *handle,
 		return -1;
 	}
 
-	printf("hfeng %s %d \n",__func__,__LINE__);
     /* create a node */
     mcapi_initialize(master->domain, master->node,
 				NULL, &parms, &version, &status);
@@ -139,101 +135,9 @@ static int init_dsp_com_mcapi_socket(DSP_COM_HANDLE *handle,
 	return 0;
 }
 
-#if 0
-static void send_msg_to_dsp(DSP_COM *master, DSP_COM *slave, DSP_COM_BUF *buffer, 
-			int block_mode, int timeout)
-{
-	int priority = 1;
-	size_t size;
-	mcapi_status_t status;
-	mcapi_request_t request;
-	size_t send_size = sizeof(DSP_COM_BUF);
-	char * vaddr;
-
-	printf("msg-l2addr=0x%x, osc_buffer_size=%d,mcapi_size=%d\n", buffer->paddr, buffer->size,send_size);
-	switch (block_mode) {
-		case 0:
-			mcapi_msg_send_i(master->endpoint,slave->endpoint,buffer,send_size,priority,&request,&status);
-			CHECK_STATUS("send_i", status, __LINE__);
-			break;
-		case 1:
-			mcapi_msg_send(master->endpoint, slave->endpoint, buffer, send_size, priority, &status);
-			CHECK_STATUS("send", status, __LINE__);
-			break;
-		default:
-			printf("Invalid block mode value: %d\
-					\nIt should be in the range of 0 or 1\n", block_mode);
-			WRONG(__LINE__);
-	}
-}
-
-static void recv_msg_from_dsp(mcapi_endpoint_t recv, char *buffer, size_t buffer_size, mcapi_status_t *status,
-	mcapi_request_t *request, int mode, int timeout)
-{
-#if 1
-return;
-#else
-	size_t size;
-	mcapi_uint_t avail;
-	if (buffer == NULL) {
-		printf("recv() Invalid buffer ptr\n");
-		WRONG(__LINE__);
-	}
-	printf("recv() start......\n");
-	switch (mode) {
-		case 0:
-			do {
-				avail = mcapi_msg_available(recv, status);
-			}while(avail <= 0);
-			CHECK_STATUS("available", *status, __LINE__);
-
-			mcapi_msg_recv_i(recv, buffer, buffer_size, request, status);
-			CHECK_STATUS("recv_i", *status, __LINE__);
-			/* use mcapi_wait to release request */
-			mcapi_wait(request, &size, timeout, status);
-			CHECK_STATUS("wait", *status, __LINE__);
-			CHECK_SIZE(buffer_size, size, __LINE__);
-			break;
-		case 1:
-			mcapi_msg_recv_i(recv, buffer, buffer_size, request, status);
-			CHECK_STATUS("recv_i", *status, __LINE__);
-			do{
-				mcapi_test(request, &size, status);
-			}while(*status == MCAPI_PENDING);
-			CHECK_STATUS("test", *status, __LINE__);
-			CHECK_SIZE(buffer_size, size, __LINE__);
-
-			/* use mcapi_wait to release request */
-			mcapi_wait(request, &size, timeout, status);
-			CHECK_STATUS("wait", *status, __LINE__);
-			CHECK_SIZE(buffer_size, size, __LINE__);
-			break;
-		case 2:
-			mcapi_msg_recv_i(recv, buffer, buffer_size, request, status);
-			CHECK_STATUS("recv_i", *status, __LINE__);
-			mcapi_wait(request, &size, timeout, status);
-			CHECK_STATUS("wait", *status, __LINE__);
-			CHECK_SIZE(buffer_size, size, __LINE__);
-			break;
-		case 3:
-			mcapi_msg_recv(recv, buffer, buffer_size, &size, status);
-			CHECK_STATUS("recv", *status, __LINE__);
-			CHECK_SIZE(buffer_size, size, __LINE__);
-			break;
-		default:
-			printf("Invalid mode value: %d\
-					\nIt should be in the range of 0 to 3\n", mode);
-			WRONG(__LINE__);
-	}
-	buffer[size] = '\0';
-	printf("end of recv() - endpoint=%i size 0x%x has received: [%s]\n", (int)recv, size, buffer);
-#endif
-}
-#endif
 
 static void deinit_dsp_com_sram_mem(DSP_COM_HANDLE *handle)
 {
-	printf("hfeng %s %d \n",__func__,__LINE__);
 	if (handle->sram_vaddr) {
 		munmap(handle->sram_vaddr, handle->sram_size);
 		handle->sram_vaddr = NULL;
@@ -254,7 +158,6 @@ static int init_dsp_com_sram_mem(DSP_COM_HANDLE *handle)
 		fprintf(stderr,"Failed to open sram mmap\n");
 		return -1;
 	}
-	printf("\nhfeng %s %d- open sram_mmap fd=%d\n",__func__,__LINE__, handle->sram_fd);
 
 	/* mmap an area in SRAM, size = handle->sram_size*/
 	handle->sram_vaddr = mmap(0, handle->sram_size, PROT_READ | PROT_WRITE, 
@@ -264,7 +167,6 @@ static int init_dsp_com_sram_mem(DSP_COM_HANDLE *handle)
 		close(handle->sram_fd);
 		return -1;
 	}
-	printf("hfeng %s %d vaddr=0x%x\n",__func__,__LINE__,handle->sram_vaddr);
 
 	/* Get physical address through ioctl */
 	ret = ioctl(handle->sram_fd, CMD_VIR_TO_PHYS, &paddr);
@@ -277,7 +179,6 @@ static int init_dsp_com_sram_mem(DSP_COM_HANDLE *handle)
 
 	/*  Send the paddr to DSP */
 	handle->buf.paddr = paddr;
-	printf("hfeng %s %d paddr =0x%x\n",__func__, __LINE__, handle->buf.paddr);
 	return ret;
 }
 
@@ -302,7 +203,6 @@ int dsp_com_open(int connection_id, size_t sram_size, int block_mode)
 	}
 
 	fd = (unsigned int)handle;
-	printf("hfeng %s %d fdfdfd =0x%x,handle=0x%x\n",__func__,__LINE__,fd,(unsigned int)handle);
 
 	/*  Send the allocated sram size to DSP */
 	handle->buf.size = sram_size;
@@ -344,17 +244,12 @@ int dsp_com_open(int connection_id, size_t sram_size, int block_mode)
 	}
 #endif
 
-	printf("hfeng %s %d fdfdfd =0x%x\n",__func__,__LINE__,fd);
-
 	return fd;
 }
 
 void dsp_com_close(int fd)
 {
 	DSP_COM_HANDLE *handle = (DSP_COM_HANDLE *)fd;
-	printf("hfeng %s %d handle=0x%x",__func__,__LINE__,handle);
-	printf("%s fdfdfd =0x%x\n",__func__,fd);
-	printf("hfeng %s %d,vaddr=0x%x, size=%d\n",__func__,__LINE__,handle->sram_vaddr,handle->sram_size);
 	
 	deinit_dsp_com_mcapi_socket(handle);
 	deinit_dsp_com_sram_mem(handle);
@@ -362,20 +257,11 @@ void dsp_com_close(int fd)
 
 void dsp_com_write(int fd, void *data, size_t data_size, int offset)
 {
-//char *vaddr;
 	int ret;
 	char recv_buf[BUFF_SIZE];
 	size_t size;
 	DSP_COM_HANDLE *handle = (DSP_COM_HANDLE *)fd;;
 
-//	printf("%s fdfdfd =0x%x\n",__func__,fd);
-//	printf("hfeng %s %d handle=0x%x",__func__,__LINE__,handle);
-
-
-//	printf("hfeng %s %d vaddr = 0x%x, paddr=0x%x,\n",__func__,__LINE__,handle->sram_vaddr, handle->buf.paddr);
 	/* Copy the data into allocated SRAM */
-//	printf("hfeng %s %d vaddr = 0x%x, data=%d\n",__func__,__LINE__,handle->sram_vaddr,*(int *)data);
-//	printf("hfeng %s %d vaddr = 0x%x, data=%f\n",__func__,__LINE__,handle->sram_vaddr,*(float *)data);
 	memcpy(handle->sram_vaddr + offset, data, data_size);
-//	vaddr[0] = 5;
 }
