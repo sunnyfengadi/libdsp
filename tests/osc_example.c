@@ -264,7 +264,6 @@ int main(int argc, char *argv[])
 #endif
 	}
 
-
 free_osc_server:
 	stop_osc_server(st);
 free_dsp_com:
@@ -290,7 +289,7 @@ int arm_handler(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, void *user_data)
 {
 	int i, id;
-	lo_arg *msg = malloc(sizeof(lo_arg));
+	lo_arg *msg = malloc(sizeof(lo_arg)*argc);
 	int arm_widget_num = *(int32_t *)user_data;
 
 	for (i = 0; i < argc; i++) {
@@ -306,12 +305,15 @@ int arm_handler(const char *path, const char *types, lo_arg **argv,
 			/******************* lineout volume  ***********************
 			 * first change the value from dB to interger */
 			if(strcmp(arm_widget[id].desc, AMIXER_LINEOUT_PLAYBACK_VOLUME) == 0)
-				vol_db_to_int(msg, argv[i]->i, 63, 0, 6, -57);
+				vol_db_to_int(&msg[i], argv[i]->i, 63, 0, 6, -57);
 			else
-				msg = argv[i];
-			amixer_control_ops(id, msg);
+				msg[i] = *argv[i];
+			amixer_control_ops(id, &msg[i]);
 		}
 	}
+
+	free(msg);
+	return 0;
 }
 
 int dsp_handler(const char *path, const char *types, lo_arg **argv,
@@ -357,4 +359,3 @@ int dsp_handler(const char *path, const char *types, lo_arg **argv,
 		dsp_com_write(dsp_fd, &val32, size, dsp_widget[id].base); 
 	}
 }
-

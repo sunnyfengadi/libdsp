@@ -143,8 +143,10 @@ static void deinit_dsp_com_sram_mem(DSP_COM_HANDLE *handle)
 		handle->sram_vaddr = NULL;
 	}
 
-	if (handle->sram_fd)
+	if (handle->sram_fd) {
 		close(handle->sram_fd);
+		handle->sram_fd = 0;
+	}
 }
 
 static int init_dsp_com_sram_mem(DSP_COM_HANDLE *handle)
@@ -172,7 +174,8 @@ static int init_dsp_com_sram_mem(DSP_COM_HANDLE *handle)
 	ret = ioctl(handle->sram_fd, CMD_VIR_TO_PHYS, &paddr);
 	if (ret < 0) { 
 		printf("Failed to get phys address\n");
-		free(handle->sram_vaddr);
+		munmap(handle->sram_vaddr, handle->sram_size);
+		handle->sram_vaddr = NULL;
 		close(handle->sram_fd);
 		return ret;
 	}
@@ -219,6 +222,7 @@ int dsp_com_open(int connection_id, size_t sram_size, int block_mode)
 	ret = init_dsp_com_mcapi_socket(handle, connection_id, block_mode);
 	if (ret < 0) {
 		deinit_dsp_com_sram_mem(handle);
+		free(handle);
 		return ret;
 	}
 
@@ -238,6 +242,7 @@ int dsp_com_open(int connection_id, size_t sram_size, int block_mode)
 		default:
 			deinit_dsp_com_mcapi_socket(handle);
 			deinit_dsp_com_sram_mem(handle);
+			free(handle);
 			printf("Invalid block mode value: %d\
 					\nIt should be in the range of 0 or 1\n", block_mode);
 			WRONG(__LINE__);
@@ -253,6 +258,7 @@ void dsp_com_close(int fd)
 	
 	deinit_dsp_com_mcapi_socket(handle);
 	deinit_dsp_com_sram_mem(handle);
+	free(handle);
 }
 
 void dsp_com_write(int fd, void *data, size_t data_size, int offset)
