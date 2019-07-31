@@ -46,6 +46,19 @@ static int dsp_fd;
 static struct adi_osc *dsp_widget;
 #define DEFAULT_DSP_XML_FILE "/dsp_widget.xml"
 
+static int vol_db_to_int(lo_arg *result, int argv, 
+			int dest_max, int dest_min, 
+			int db_max, int db_min){
+	int i;
+
+	int dest_delta = dest_max - dest_min;
+	int db_delta = db_max - db_min;
+	int dest_to_db_delta = argv - db_min;
+
+	result->i = (dest_delta/db_delta)*dest_to_db_delta + dest_min;
+	return 1;
+}
+
 static int start_osc_server(int osc_port, int num1, int num2, lo_server_thread osc_server) {
 	int i;
 	uint32_t port = (osc_port > 100 && osc_port < 60000) ? osc_port : 9988;
@@ -345,15 +358,3 @@ int dsp_handler(const char *path, const char *types, lo_arg **argv,
 	}
 }
 
-static int vol_db_to_int(lo_arg *result, int argv, 
-			int dest_max, int dest_min, 
-			int db_max, int db_min){
-	int i;
-
-	int dest_delta = dest_max - dest_min;
-	int db_delta = db_max - db_min;
-	int dest_to_db_delta = argv - db_min;
-
-	result->i = (dest_delta/db_delta)*dest_to_db_delta + dest_min;
-	return 1;
-}
