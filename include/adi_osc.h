@@ -16,50 +16,27 @@
 #define SLAVE_PORT_NUM 5
 
 void error(int num, const char *m, const char *path);
-int generic_handler(const char *path, const char *types, lo_arg **argv,
-		    int argc, void *data, void *user_data);
-int user_widget_handler(const char *path, const char *types, lo_arg **argv,
+//int generic_handler(const char *path, const char *types, lo_arg **argv,
+//		    int argc, void *data, void *user_data);
+//int user_widget_handler(const char *path, const char *types, lo_arg **argv,
+//		    int argc, void *data, void *user_data);
+int arm_handler(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, void *user_data);
 int dsp_handler(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, void *user_data);
-void state_parse_handler();	    
-void delSpace(char *str);
-static void arm_control_ops(const char *path, lo_type type,
-	lo_arg *argv, void *user_data);
-static void musicplay_control_ops(const char *path, lo_type type,
-	lo_arg *argv, void *user_data);
-static void echo_loopback_control_ops(const char *path, lo_type type,
-	lo_arg *argv, void *user_data);
-static void pot_hadc_loopback_control_ops(const char *path, lo_type type,
-	lo_arg *argv, void *user_data);
-static void dsp_control_ops(const char *path, lo_type type,
-	lo_arg *argv, void *user_data);
+//void state_parse_handler();	    
+//void delSpace(char *str);
+//static void arm_control_ops(const char *path, lo_type type,
+//	lo_arg *argv, void *user_data);
+//static void musicplay_control_ops(const char *path, lo_type type,
+//	lo_arg *argv, void *user_data);
+//static void echo_loopback_control_ops(const char *path, lo_type type,
+//	lo_arg *argv, void *user_data);
+//static void pot_hadc_loopback_control_ops(const char *path, lo_type type,
+//	lo_arg *argv, void *user_data);
+//static void dsp_control_ops(const char *path, lo_type type,
+//	lo_arg *argv, void *user_data);
 
-/* One kind of control ops should have one unique ctrl_trpe */
-typedef enum {
-	ARM = 0,
-	DSP,
-	ECHO_SWITCH, /* Temp ctrl type to execute shell script */
-	POT_HADC_SWITCH, /* Temp ctrl type to execute shell script */
-	APLAY_SWITCH,
-}ctr_type;
-
-#if 0
-typedef struct delay_param {
-	float delay_len_seconds;
-	float delay_wet_mix;
-	float delay_feedback;
-} DELAY_PARAM;
-#endif
-
-typedef struct audio_effect_param {
-	uint32_t	effects_preset;
-    uint32_t	reverb_preset;
-    uint32_t	total_effects_presets;
-    float 		audioproj_fin_pot_hadc0;
-    float 		audioproj_fin_pot_hadc1;
-    float 		audioproj_fin_pot_hadc2;
-} EFFECT_PARAM; 
  
 struct osc_ops{
 	char osc_id[50];
@@ -70,6 +47,7 @@ struct osc_ops{
     void (*do_audio_control)(const char *path, const char *types, lo_arg *argv, void *user_data);
 };
 
+#if 0
 typedef struct widget{
 	ctr_type ctr_type;	/* DSP/ARM control the audio*/
 	lo_type type;		/* Widget type */
@@ -78,13 +56,7 @@ typedef struct widget{
 //						 * indicate the parameter should be parsed */
 	char *desc;		/* description for the widget */
 };
-
-struct adi_dsp_osc{
-	int32_t index;
-	const char *path;
-	lo_type *type;
-	const char *desc;
-};
+#endif
 
 typedef union {
     int32_t  i;
@@ -99,24 +71,6 @@ typedef union {
     uint64_t   nl;
     lo_timetag tt;
 } lo_pcast64;
-
-#define OSC_WIDGET(osc_type, osc_name, amixer_name_id, ops) \
-{ .osc_id = NULL, .osc_value = 0,\
-	.type = osc_type, .osc_path = osc_name, \
-	.amixer_name = amixer_name_id, .do_audio_control = ops\
-}
-
-/* DSP algorithm */
-#define OSC_DSP_GAIN_DELAY_SECONDS		"/dsp/gain/delay/seconds"
-#define OSC_DSP_GAIN_WET_MIX			"/dsp/gain/wet/mix"
-#define OSC_DSP_GAIN_FEEDBACK			"/dsp/gain/feedback"
-
-#define OSC_DSP_EFFECTS_PRESET			"/effects/preset"
-#define OSC_DSP_REVERB_PRESET			"/reverb/preset"
-#define OSC_DSP_AUDIOPROJ_FIN_POT_HADC0	"/audioproj/fin/pot/hadc0"
-#define OSC_DSP_AUDIOPROJ_FIN_POT_HADC1	"/audioproj/fin/pot/hadc1"
-#define OSC_DSP_AUDIOPROJ_FIN_POT_HADC2	"/audioproj/fin/pot/hadc2"
-
 
 /* TODO add your own OSC widget here */
 

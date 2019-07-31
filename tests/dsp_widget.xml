@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dsp_parameter>
+    <index ID="0">
+        <path>/audioproj/fin/pot/hadc0</path>
+        <type>f</type>
+        <desc>set hadc0 parameter</desc>
+    </index>
+    <index ID="1">
+        <path>/audioproj/fin/pot/hadc1</path>
+        <type>f</type>
+        <desc>set hadc1 parameter</desc>
+    </index>
+    <index ID="2">
+        <path>/audioproj/fin/pot/hadc2</path>
+        <type>f</type>
+        <desc>set hadc2 parameter</desc>
+    </index>
+    <index ID="3">
+        <path>/audioproj/fin/pot/hadc3</path>
+        <type>f</type>
+        <desc>set hadc3 parameter</desc>
+    </index>
+    <index ID="4">
+        <path>/audioproj/fin/pot/hadc4</path>
+        <type>f</type>
+        <desc>set hadc4 parameter</desc>
+    </index>
+    <index ID="5">
+        <path>/audioproj/fin/pot/hadc5</path>
+        <type>f</type>
+        <desc>set hadc5 parameter</desc>
+    </index>
+    <index ID="6">
+        <path>/audioproj/fin/pot/hadc6</path>
+        <type>f</type>
+        <desc>set hadc6 parameter</desc>
+    </index>
+    <index ID="7">
+        <path>/effects/preset</path>
+        <type>i</type>
+        <desc>enable effects preset</desc>
+    </index>
+    <index ID="8">
+        <path>/reverb/preset</path>
+        <type>i</type>
+        <desc>enable reverb preset</desc>
+    </index>
+    <index ID="9">
+        <path>/total/effects/preset</path>
+        <type>i</type>
+        <desc>enable total effexts preset</desc>
+    </index>
+</dsp_parameter>

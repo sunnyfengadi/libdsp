@@ -47,7 +47,7 @@ typedef union {
 } DSP_COM_BUF_TYPE64; 
 
 typedef struct dsp_com_handle {
-	int sram_handle;	/* sram handle to open/mmap/munmap/close memory in L2 */
+	int sram_fd;		/* sram fd to open/mmap/munmap/close memory in L2 */
 	char *sram_vaddr;	/* virtual address mapped in sram */
 	size_t sram_size;	/* mmaped size in sram */
 	DSP_COM master;		/* MCAPI communication master point */
@@ -55,22 +55,10 @@ typedef struct dsp_com_handle {
 	DSP_COM_BUF buf;	/* msg to send to DSP through MCAPI */
 } DSP_COM_HANDLE;
 
-#if 0
-void init_dsp_communication(COORD *master, COORD *slave,
-                    int block_mode, int timeout);
-void send_msg_to_dsp(mcapi_endpoint_t send, mcapi_endpoint_t recv, char *msg, size_t send_size,
-	mcapi_status_t *status, mcapi_request_t *request, int mode, int timeout);
-
-void recv_msg_from_dsp(mcapi_endpoint_t recv, char *buffer, size_t buffer_size, mcapi_status_t *status,
-mcapi_request_t *request, int mode, int timeout);
-#else
 int dsp_com_open(int connection_id, size_t sram_size, int block_mode);
 void dsp_com_close(int fd);
 void dsp_com_write(int fd, void *value, size_t data_size, int offset);
 //void dsp_com_read(DSP_COM_HANDLE *handle, void *value, size_t data_size, int block_mode);
-
-#endif
-
 
 #endif
 

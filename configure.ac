@@ -19,11 +19,13 @@ AC_PROG_RANLIB
 AC_PROG_LIBTOOL
 
 # Checks for libraries.
+LIBS="-lasound -llo -lmcapi -lxml2"
 AC_CHECK_LIB([asound], [snd_ctl_open])
 AC_CHECK_LIB([lo], [lo_send])
 AC_CHECK_LIB([mcapi], [mcapi_initialize])
 AC_CHECK_LIB([xml2], [xmlReadFile])
 
+PKG_CHECK_MODULES(XML, libxml-2.0 >= 2.4)
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h stdlib.h string.h unistd.h])

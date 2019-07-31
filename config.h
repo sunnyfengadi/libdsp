@@ -8,19 +8,22 @@
 #define HAVE_FCNTL_H 1
 
 /* Define to 1 if you have the `getpagesize' function. */
-/* #undef HAVE_GETPAGESIZE */
+#define HAVE_GETPAGESIZE 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `asound' library (-lasound). */
-/* #undef HAVE_LIBASOUND */
+#define HAVE_LIBASOUND 1
 
 /* Define to 1 if you have the `lo' library (-llo). */
 /* #undef HAVE_LIBLO */
 
 /* Define to 1 if you have the `mcapi' library (-lmcapi). */
-/* #undef HAVE_LIBMCAPI */
+#define HAVE_LIBMCAPI 1
+
+/* Define to 1 if you have the `xml2' library (-lxml2). */
+#define HAVE_LIBXML2 1
 
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
@@ -33,7 +36,7 @@
 /* #undef HAVE_MMAP */
 
 /* Define to 1 if you have the `munmap' function. */
-/* #undef HAVE_MUNMAP */
+#define HAVE_MUNMAP 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
@@ -48,7 +51,7 @@
 #define HAVE_STRING_H 1
 
 /* Define to 1 if you have the `strstr' function. */
-/* #undef HAVE_STRSTR */
+#define HAVE_STRSTR 1
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #define HAVE_SYS_PARAM_H 1

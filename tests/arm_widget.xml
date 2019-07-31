@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<arm_parameter>
+    <index ID="0">
+        <path>/aplay/switch</path>
+        <type>i</type>
+        <desc>aplay command</desc>
+    </index>
+    <index ID="1">
+        <path>/lineout/switch</path>
+        <type>i</type>
+        <desc>Lineout Playback Switch</desc>
+    </index>
+    <index ID="2">
+        <path>/lineout/volume</path>
+        <type>i</type>
+        <desc>Lineout Playback Volume</desc>
+    </index>
+    <index ID="3">
+        <path>/left/LR/left/volume</path>
+        <type>i</type>
+        <desc>Left LR Playback Mixer Left Volume</desc>
+    </index>
+    <index ID="4">
+        <path>/left/LR/right/volume</path>
+        <type>i</type>
+        <desc>Left LR Playback Mixer Right Volume</desc>
+    </index>
+    <index ID="5">
+        <path>/right/LR/left/volume</path>
+        <type>i</type>
+        <desc>Right LR Playback Mixer Left Volume</desc>
+    </index>
+    <index ID="6">
+        <path>/right/LR/right/volume</path>
+        <type>i</type>
+        <desc>Right LR Playback Mixer Right Volume</desc>
+    </index>
+    <index ID="7">
+        <path>/DAC/playback/mux</path>
+        <type>i</type>
+        <desc>DAC Playback Mux</desc>
+    </index>
+    <index ID="8">
+        <path>/left/left/DAC/switch</path>
+        <type>i</type>
+        <desc>Left Playback Mixer Left DAC Switch</desc>
+    </index>
+    <index ID="9">
+        <path>/left/right/DAC/switch</path>
+        <type>i</type>
+        <desc>Left Playback Mixer Right DAC Switch</desc>
+    </index>
+    <index ID="10">
+        <path>/right/left/DAC/switch</path>
+        <type>i</type>
+        <desc>Right Playback Mixer Left DAC Switch</desc>
+    </index>
+    <index ID="11">
+        <path>/right/right/DAC/switch</path>
+        <type>i</type>
+        <desc>Right Playback Mixer Right DAC Switch</desc>
+    </index>
+</arm_parameter>

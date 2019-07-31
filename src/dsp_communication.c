@@ -105,8 +105,6 @@ static int init_dsp_com_mcapi_socket(DSP_COM_HANDLE *handle,
 		break;
 	default:
 		printf("Invalid connction id\n");	
-		close(handle->sram_handle);
-		free(handle);
 		return -1;
 	}
 
@@ -138,6 +136,7 @@ static int init_dsp_com_mcapi_socket(DSP_COM_HANDLE *handle,
 			master->node, master->port,
 			slave->endpoint, slave->domain,
 			slave->node, slave->port);
+	return 0;
 }
 
 #if 0
@@ -235,49 +234,51 @@ return;
 static void deinit_dsp_com_sram_mem(DSP_COM_HANDLE *handle)
 {
 	printf("hfeng %s %d \n",__func__,__LINE__);
-	munmap(handle->sram_vaddr, handle->sram_size);
-	close(handle->sram_handle);
+	if (handle->sram_vaddr) {
+		munmap(handle->sram_vaddr, handle->sram_size);
+		handle->sram_vaddr = NULL;
+	}
+
+	if (handle->sram_fd)
+		close(handle->sram_fd);
 }
 
 static int init_dsp_com_sram_mem(DSP_COM_HANDLE *handle)
 {
-	int ret;
+	int ret = 0;
 	unsigned long paddr;
 
 	/* Open sram_mmap */
-	handle->sram_handle = open("/dev/sram_mmap", O_RDWR);
-	if (!handle->sram_handle)
-	{
+	handle->sram_fd = open("/dev/sram_mmap", O_RDWR);
+	if (!handle->sram_fd) {
 		fprintf(stderr,"Failed to open sram mmap\n");
-		free(handle);
 		return -1;
 	}
-	printf("\nhfeng %s %d- open sram_mmap fd=%d\n",__func__,__LINE__, handle->sram_handle);
+	printf("\nhfeng %s %d- open sram_mmap fd=%d\n",__func__,__LINE__, handle->sram_fd);
 
 	/* mmap an area in SRAM, size = handle->sram_size*/
 	handle->sram_vaddr = mmap(0, handle->sram_size, PROT_READ | PROT_WRITE, 
-				MAP_FILE | MAP_SHARED, handle->sram_handle, 0);
-	if (!handle->sram_vaddr)
-	{
+				MAP_FILE | MAP_SHARED, handle->sram_fd, 0);
+	if (!handle->sram_vaddr) {
 		fprintf(stderr,"mmap failed\n");
-		close(handle->sram_handle);
-		free(handle);
+		close(handle->sram_fd);
 		return -1;
-		}
+	}
 	printf("hfeng %s %d vaddr=0x%x\n",__func__,__LINE__,handle->sram_vaddr);
 
 	/* Get physical address through ioctl */
-	ret = ioctl(handle->sram_handle, CMD_VIR_TO_PHYS, &paddr);
+	ret = ioctl(handle->sram_fd, CMD_VIR_TO_PHYS, &paddr);
 	if (ret < 0) { 
 		printf("Failed to get phys address\n");
-		close(handle->sram_handle);
-		free(handle);
+		free(handle->sram_vaddr);
+		close(handle->sram_fd);
 		return ret;
 	}
 
 	/*  Send the paddr to DSP */
 	handle->buf.paddr = paddr;
 	printf("hfeng %s %d paddr =0x%x\n",__func__, __LINE__, handle->buf.paddr);
+	return ret;
 }
 
 int dsp_com_open(int connection_id, size_t sram_size, int block_mode)
@@ -309,8 +310,17 @@ int dsp_com_open(int connection_id, size_t sram_size, int block_mode)
 	/* Map an area in L2 to share data with DSP */
 	/* Open the device */
 	handle->sram_size = sram_size;
-	init_dsp_com_sram_mem(handle);
-	init_dsp_com_mcapi_socket(handle, connection_id, block_mode);
+	ret = init_dsp_com_sram_mem(handle);
+	if (ret < 0) {
+		free(handle);
+		return ret;
+	}
+
+	ret = init_dsp_com_mcapi_socket(handle, connection_id, block_mode);
+	if (ret < 0) {
+		deinit_dsp_com_sram_mem(handle);
+		return ret;
+	}
 
 #if 1 
 	/* Send msg(paddr + size) to DSP */
@@ -326,14 +336,13 @@ int dsp_com_open(int connection_id, size_t sram_size, int block_mode)
 			CHECK_STATUS("send", status, __LINE__);
 			break;
 		default:
-			close(handle->sram_handle);
+			deinit_dsp_com_mcapi_socket(handle);
+			deinit_dsp_com_sram_mem(handle);
 			printf("Invalid block mode value: %d\
 					\nIt should be in the range of 0 or 1\n", block_mode);
 			WRONG(__LINE__);
 	}
 #endif
-
-	
 
 	printf("hfeng %s %d fdfdfd =0x%x\n",__func__,__LINE__,fd);
 
@@ -351,11 +360,6 @@ void dsp_com_close(int fd)
 	deinit_dsp_com_sram_mem(handle);
 }
 
-void dsp_com_read(DSP_COM_HANDLE *handle, void *value, size_t data_size, int block_mode)
-{
-
-}
-
 void dsp_com_write(int fd, void *data, size_t data_size, int offset)
 {
 //char *vaddr;
@@ -364,14 +368,14 @@ void dsp_com_write(int fd, void *data, size_t data_size, int offset)
 	size_t size;
 	DSP_COM_HANDLE *handle = (DSP_COM_HANDLE *)fd;;
 
-	printf("%s fdfdfd =0x%x\n",__func__,fd);
-	printf("hfeng %s %d handle=0x%x",__func__,__LINE__,handle);
+//	printf("%s fdfdfd =0x%x\n",__func__,fd);
+//	printf("hfeng %s %d handle=0x%x",__func__,__LINE__,handle);
 
 
-	printf("hfeng %s %d vaddr = 0x%x, paddr=0x%x,\n",__func__,__LINE__,handle->sram_vaddr, handle->buf.paddr);
+//	printf("hfeng %s %d vaddr = 0x%x, paddr=0x%x,\n",__func__,__LINE__,handle->sram_vaddr, handle->buf.paddr);
 	/* Copy the data into allocated SRAM */
-	printf("hfeng %s %d vaddr = 0x%x, data=%d\n",__func__,__LINE__,handle->sram_vaddr,*(int *)data);
-	printf("hfeng %s %d vaddr = 0x%x, data=%f\n",__func__,__LINE__,handle->sram_vaddr,*(float *)data);
+//	printf("hfeng %s %d vaddr = 0x%x, data=%d\n",__func__,__LINE__,handle->sram_vaddr,*(int *)data);
+//	printf("hfeng %s %d vaddr = 0x%x, data=%f\n",__func__,__LINE__,handle->sram_vaddr,*(float *)data);
 	memcpy(handle->sram_vaddr + offset, data, data_size);
 //	vaddr[0] = 5;
 }
