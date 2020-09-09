@@ -1,0 +1,21 @@
+From 4fe9a87cdfc80451747f5c881a73957beaac58b6 Mon Sep 17 00:00:00 2001
+From: huanhuan feng <huanhuan.feng@analog.com>
+Date: Wed, 9 Sep 2020 16:46:44 +0800
+Subject: [PATCH] Add gitignore file
+
+Signed-off-by: huanhuan feng <huanhuan.feng@analog.com>
+---
+ .gitignore | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 .gitignore
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..5761abc
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1 @@
++*.o
+-- 
+2.17.1
+
